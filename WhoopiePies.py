@@ -1,10 +1,9 @@
 import bs4 as bs
 import urllib.request
-
+import smtplib
 
 """
 TODO:
-1) Take the information from the pies list and display it nicely.
 2) Checks at the beginning of the week, so figure out how to make grabEachLocation() run once a week.
     - store the information so that it can be called on at any time (emailing daily reminders about the whoopie pie schedule)
         - delete sub-information when the day has passed already
@@ -25,12 +24,12 @@ def whoopieGrabber(link,meal,location,pies):
                     try: # gets items with links;
                         dessert = item.a.string
                         if 'Whoopie' in dessert:
-                            pies.append('|'.join([dessert,meal,location,betterDay[day]]))
+                            pies.append([dessert+'s', meal, location, betterDay[day]])
 
                     except:
                         dessert = item.span.string # gets items without links
                         if 'Whoopie' in dessert:
-                            pies.append('|'.join([dessert,meal,location,betterDay[day]]))
+                            pies.append([dessert+'s', meal, location, betterDay[day]])
 
 
 
@@ -44,6 +43,37 @@ def grabEachLocation():
                            meal,
                            hall,
                            pies)
-    print(pies)
+    return pies
 
-grabEachLocation()
+
+def createMessage(pies):
+    if len(pies) > 0:
+        message = 'According to the dining hall menus, this week\'s whoopie pie menu is as follows:\n'
+        for result in pies:
+            message +='\n'+result[2]+' will be serving '+result[0]+' during '+result[1]+' on '+result[-1]+'.'
+    else:
+        message = 'According to the dining hall menus, there won\'t be any whoopie pies this week :(\nYou will recieve an email if that changes.\n\n'
+    return message
+
+
+def sendEmail(msg,emailList):
+    try:
+        server = smtplib.SMTP('smtp.gmail.com',587) # Connects to server
+        server.ehlo() # Encryptes everything that follows
+        server.starttls()
+        server.login('UVAWhoopiePie@gmail.com','WhoopiePiesAreGood!')
+        message = 'Subject: {}\n\n{}'.format('UVA Whoopie Pie Schedule',msg)
+        for email in emailList:
+            server.sendmail('UVAWhoopiePie@gmail.com',email,message)
+
+    except:
+        print('Email failed to send.')
+
+def main():
+    pies = grabEachLocation()
+    message = createMessage(pies)
+    emailList = ['jr6ff@virginia.edu']
+    sendEmail(message,emailList)
+    print('Done')
+
+main()
